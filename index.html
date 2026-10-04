@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Machine Readable Card Formatter</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #0a0a0f;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            padding: 40px 20px;
+            min-height: 100vh;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 35px;
+            color: #fff;
+        }
+
+        h1 {
+            font-size: 26px;
+            margin-bottom: 6px;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-weight: 700;
+        }
+
+        .subtitle {
+            color: #666;
+            font-size: 13px;
+            letter-spacing: 0.5px;
+        }
+
+        .input-section {
+            max-width: 680px;
+            margin: 0 auto 35px;
+        }
+
+        textarea {
+            width: 100%;
+            height: 110px;
+            padding: 16px;
+            font-size: 13px;
+            border: 1px solid #2a2a3a;
+            border-radius: 10px;
+            background: #12121f;
+            color: #e0e0e0;
+            font-family: 'Courier New', monospace;
+            resize: vertical;
+            line-height: 1.5;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .hint {
+            color: #555;
+            font-size: 12px;
+            margin-top: 10px;
+            text-align: center;
+        }
+
+        .controls {
+            display: flex;
+            gap: 12px;
+            margin-top: 18px;
+            justify-content: center;
+        }
+
+        button {
+            padding: 12px 28px;
+            border: none;
+            border-radius: 8px;
+            font-family: inherit;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+
+        .generate-btn {
+            background: #4ecca3;
+            color: #0f0f1a;
+        }
+
+        .clear-btn {
+            background: #2a2a3a;
+            color: #ff6b6b;
+        }
+
+        .cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(440px, 1fr));
+            gap: 25px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .card-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .card-index {
+            color: #444;
+            font-size: 11px;
+            margin-bottom: 10px;
+            font-family: monospace;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .card {
+            width: 430px;
+            height: 271px;
+            border-radius: 16px;
+            position: relative;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+            box-shadow: 
+                0 25px 60px rgba(0,0,0,0.6),
+                inset 0 1px 0 rgba(255,255,255,0.15),
+                inset 0 -1px 0 rgba(0,0,0,0.2);
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                repeating-linear-gradient(
+                    45deg,
+                    transparent,
+                    transparent 20px,
+                    rgba(255,255,255,0.03) 20px,
+                    rgba(255,255,255,0.03) 40px
+                );
+            pointer-events: none;
+        }
+
+        .top-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 20px;
+            z-index: 1;
+        }
+
+        .chip {
+            width: 50px;
+            height: 38px;
+            background: linear-gradient(135deg, #e6c35c 0%, #d4a017 50%, #b8860b 100%);
+            border-radius: 8px;
+            position: relative;
+            border: 1px solid rgba(0,0,0,0.3);
+            box-shadow: 
+                0 3px 6px rgba(0,0,0,0.3),
+                inset 0 1px 0 rgba(255,255,255,0.3);
+        }
+
+        .chip::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 70%;
+            height: 60%;
+            border: 1px solid #8b6914;
+            border-radius: 5px;
+            opacity: 0.8;
+        }
+
+        .chip::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 40%;
+            border-top: 1px solid #8b6914;
+            opacity: 0.8;
+        }
+
+        .logo {
+            font-size: 20px;
+            font-weight: 800;
+            color: rgba(255,255,255,0.95);
+            font-style: italic;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            letter-spacing: 1px;
+        }
+
+        .mrz-container {
+            margin-top: auto;
+            background: rgba(0,0,0,0.35);
+            border-radius: 12px;
+            padding: 18px 20px;
+            border: 1px solid rgba(255,255,255,0.1);
+            backdrop-filter: blur(8px);
+            z-index: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        /* Line 1: Card Number - scales dynamically */
+        .mrz-line-pan {
+            width: 100%;
+        }
+
+        .pan-number {
+            font-family: 'OCR A Std', 'OCR-A', 'OCR B', 'OCR-B', 'Courier New', monospace;
+            color: #fff;
+            font-weight: 500;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+            white-space: nowrap;
+            display: block;
+            width: 100%;
+        }
+
+        /* Dynamic font size classes based on formatted length */
+        .pan-size-15 { font-size: 26px; letter-spacing: 4px; }
+        .pan-size-16 { font-size: 24px; letter-spacing: 3.5px; }
+        .pan-size-17 { font-size: 22px; letter-spacing: 3px; }
+        .pan-size-18 { font-size: 21px; letter-spacing: 2.8px; }
+        .pan-size-19 { font-size: 20px; letter-spacing: 2.5px; }
+        .pan-size-20 { font-size: 19px; letter-spacing: 2.3px; }
+        .pan-size-21 { font-size: 18px; letter-spacing: 2px; }
+        .pan-size-22 { font-size: 17px; letter-spacing: 1.8px; }
+        .pan-size-23 { font-size: 16px; letter-spacing: 1.6px; }
+
+        /* Line 2: Exp and CVV */
+        .mrz-line-details {
+            display: flex;
+            gap: 40px;
+            align-items: flex-end;
+        }
+
+        .mrz-field {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .mrz-label {
+            font-size: 9px;
+            color: rgba(255,255,255,0.6);
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            margin-bottom: 4px;
+            font-weight: 600;
+        }
+
+        .mrz-value {
+            font-family: 'OCR A Std', 'OCR-A', 'OCR B', 'OCR-B', 'Courier New', monospace;
+            font-size: 18px;
+            color: #fff;
+            letter-spacing: 2px;
+            font-weight: 500;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+            white-space: nowrap;
+        }
+
+        /* Line 3: Cardholder Name */
+        .cardholder-line {
+            font-family: 'OCR A Std', 'OCR-A', 'OCR B', 'OCR-B', 'Courier New', monospace;
+            font-size: 16px;
+            color: rgba(255,255,255,0.95);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            font-weight: 500;
+            text-shadow: 0 2px 3px rgba(0,0,0,0.4);
+            padding-top: 10px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            margin-top: 4px;
+            text-align: left;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .error {
+            color: #ff6b6b;
+            text-align: center;
+            margin-top: 15px;
+            font-size: 13px;
+            white-space: pre-line;
+            font-family: monospace;
+            line-height: 1.6;
+        }
+
+        .stats {
+            text-align: center;
+            color: #666;
+            margin-bottom: 25px;
+            font-size: 13px;
+            font-family: monospace;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .stats.valid {
+            color: #4ecca3;
+        }
+
+        .stats.error {
+            color: #ff6b6b;
+        }
+
+        .empty-state {
+            text-align: center;
+            color: #444;
+            padding: 80px 20px;
+            font-size: 15px;
+            grid-column: 1 / -1;
+        }
+
+        @media (max-width: 500px) {
+            .cards-grid {
+                grid-template-columns: 1fr;
+            }
+            .card {
+                width: 100%;
+                height: auto;
+                min-height: 271px;
+                padding: 20px;
+            }
+            .pan-size-15 { font-size: 22px; letter-spacing: 3px; }
+            .pan-size-16 { font-size: 20px; letter-spacing: 2.5px; }
+            .pan-size-17 { font-size: 19px; letter-spacing: 2.2px; }
+            .pan-size-18 { font-size: 18px; letter-spacing: 2px; }
+            .pan-size-19 { font-size: 17px; letter-spacing: 1.8px; }
+            .pan-size-20 { font-size: 16px; letter-spacing: 1.6px; }
+            .pan-size-21 { font-size: 15px; letter-spacing: 1.5px; }
+            .pan-size-22 { font-size: 14px; letter-spacing: 1.3px; }
+            .pan-size-23 { font-size: 13px; letter-spacing: 1.2px; }
+            .mrz-value {
+                font-size: 15px;
+                letter-spacing: 1.5px;
+            }
+            .cardholder-line {
+                font-size: 14px;
+                letter-spacing: 1.5px;
+            }
+            .mrz-line-details {
+                gap: 25px;
+            }
+            .chip {
+                width: 42px;
+                height: 32px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1>💳 Machine Readable Card Formatter</h1>
+        <div class="subtitle">ISO/IEC 7810 ID-1 Standard with OCR-A Typography</div>
+    </div>
+
+    <div class="input-section">
+        <textarea id="cardInput" placeholder="John Doe|4532123456789012|12|2027|123
+Jane Smith|5555123456789012|06|2026|456
+Bob Wilson|378212345678901|09|2028|1234"></textarea>
+        <div class="hint">Format: NAME|CARDNUMBER|MM|YYYY|CVV (one per line)</div>
+        
+        <div class="controls">
+            <button class="generate-btn" onclick="generateCards()">Generate Cards</button>
+            <button class="clear-btn" onclick="clearAll()">Clear</button>
+        </div>
+        
+        <div id="error" class="error"></div>
+    </div>
+
+    <div id="stats" class="stats"></div>
+    
+    <div id="cardsContainer" class="cards-grid">
+        <div class="empty-state">Enter card data above and click Generate</div>
+    </div>
+
+    <script>
+        const detectCardType = (number) => {
+            if (number.startsWith('4')) return 'VISA';
+            if (/^5[1-5]/.test(number)) return 'MASTERCARD';
+            if (/^3[47]/.test(number)) return 'AMEX';
+            if (/^6(?:011|5)/.test(number)) return 'DISCOVER';
+            if (/^3(?:0[0-5]|[68])/.test(number)) return 'DINERS';
+            if (/^35/.test(number)) return 'JCB';
+            return 'CARD';
+        };
+
+        const formatCardNumber = (num) => {
+            if (num.length === 15) {
+                return num.replace(/(\d{4})(\d{6})(\d{5})/, '$1 $2 $3');
+            }
+            return num.replace(/(\d{4})(?=\d)/g, '$1 ').trim();
+        };
+
+        // Calculate font size class based on formatted card number length
+        const getPanSizeClass = (formattedNum) => {
+            const length = formattedNum.length;
+            // Map length to size class (15-23 chars covers all card formats)
+            if (length <= 15) return 'pan-size-15';
+            if (length === 16) return 'pan-size-16';
+            if (length === 17) return 'pan-size-17';
+            if (length === 18) return 'pan-size-18';
+            if (length === 19) return 'pan-size-19';
+            if (length === 20) return 'pan-size-20';
+            if (length === 21) return 'pan-size-21';
+            if (length === 22) return 'pan-size-22';
+            return 'pan-size-23';
+        };
+
+        const parseCardLine = (line, index) => {
+            line = line.trim();
+            if (!line) return null;
+
+            const parts = line.split('|').map(p => p.trim());
+            
+            if (parts.length !== 5) {
+                return { error: `Line ${index + 1}: Expected 5 fields (NAME|NUMBER|MM|YYYY|CVV)` };
+            }
+
+            const [name, number, month, year, cvv] = parts;
+            
+            const errors = [];
+            if (!/^\d{13,19}$/.test(number)) errors.push('invalid card number length');
+            if (!/^\d{1,2}$/.test(month) || parseInt(month) < 1 || parseInt(month) > 12) errors.push('invalid month (1-12)');
+            if (!/^\d{4}$/.test(year)) errors.push('invalid year (YYYY)');
+            if (!/^\d{3,4}$/.test(cvv)) errors.push('invalid CVV (3-4 digits)');
+            
+            if (errors.length) {
+                return { error: `Line ${index + 1}: ${errors.join(', ')}` };
+            }
+
+            return {
+                name: name.toUpperCase(),
+                number,
+                month: month.padStart(2, '0'),
+                year,
+                cvv,
+                type: detectCardType(number)
+            };
+        };
+
+        const createCardHTML = (card, index) => {
+            const formattedPan = formatCardNumber(card.number);
+            const panSizeClass = getPanSizeClass(formattedPan);
+            
+            return `
+                <div class="card-wrapper">
+                    <div class="card-index">CARD ${String(index + 1).padStart(3, '0')}</div>
+                    <div class="card">
+                        <div class="top-row">
+                            <div class="chip"></div>
+                            <div class="logo">${card.type}</div>
+                        </div>
+                        
+                        <div class="mrz-container">
+                            <!-- Line 1: Card Number with dynamic sizing -->
+                            <div class="mrz-line-pan">
+                                <div class="pan-number ${panSizeClass}">${formattedPan}</div>
+                            </div>
+                            
+                            <!-- Line 2: Exp and CVV -->
+                            <div class="mrz-line-details">
+                                <div class="mrz-field exp">
+                                    <div class="mrz-label">Valid Thru</div>
+                                    <div class="mrz-value">${card.month}/${card.year.slice(-2)}</div>
+                                </div>
+                                
+                                <div class="mrz-field cvv">
+                                    <div class="mrz-label">CVV</div>
+                                    <div class="mrz-value">${card.cvv}</div>
+                                </div>
+                            </div>
+                            
+                            <!-- Line 3: Cardholder Name -->
+                            <div class="cardholder-line">${card.name}</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        };
+
+        const generateCards = () => {
+            const input = document.getElementById('cardInput').value;
+            const container = document.getElementById('cardsContainer');
+            const errorDiv = document.getElementById('error');
+            const statsDiv = document.getElementById('stats');
+            
+            if (!input.trim()) {
+                errorDiv.textContent = 'Please enter card data';
+                statsDiv.textContent = '';
+                return;
+            }
+
+            const lines = input.split('\n').filter(l => l.trim());
+            const cards = [];
+            const errors = [];
+
+            lines.forEach((line, idx) => {
+                const result = parseCardLine(line, idx);
+                if (!result) return;
+                result.error ? errors.push(result.error) : cards.push(result);
+            });
+
+            errorDiv.textContent = errors.join('\n');
+            
+            if (!cards.length) {
+                container.innerHTML = '<div class="empty-state">No valid cards found</div>';
+                statsDiv.className = 'stats error';
+                statsDiv.textContent = errors.length ? `ERRORS: ${errors.length}` : '';
+                return;
+            }
+
+            statsDiv.className = cards.length === lines.length ? 'stats valid' : 'stats';
+            statsDiv.textContent = `VALID: ${cards.length}${errors.length ? ` | ERRORS: ${errors.length}` : ''}`;
+            container.innerHTML = cards.map((card, idx) => createCardHTML(card, idx)).join('');
+        };
+
+        const clearAll = () => {
+            document.getElementById('cardInput').value = '';
+            document.getElementById('cardsContainer').innerHTML = '<div class="empty-state">Enter card data above and click Generate</div>';
+            document.getElementById('error').textContent = '';
+            document.getElementById('stats').textContent = '';
+            document.getElementById('stats').className = 'stats';
+        };
+
+        document.getElementById('cardInput').addEventListener('keydown', (e) => {
+            if (e.ctrlKey && e.key === 'Enter') generateCards();
+        });
+
+        window.addEventListener('DOMContentLoaded', () => {
+            if (document.getElementById('cardInput').value.trim()) generateCards();
+        });
+    </script>
+
+</body>
+</html>
